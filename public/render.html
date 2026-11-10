@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Render de maquetas · Maquetas AR · EPET N° 2</title>
+<link rel="stylesheet" href="/estilos.css">
+<style>
+  .cfg { max-width: 860px; }
+  .group { margin: 0; border: 0; padding: 0 0 20px; min-width: 0; }
+  .group + .group { border-top: 1px solid #ffffff0f; padding-top: 18px; }
+  legend { font-weight: 750; font-size: 16px; padding: 0 0 12px; float: left; width: 100%; }
+  .choices { display: flex; flex-wrap: wrap; gap: 9px; clear: both; }
+  .choice { display: inline-flex; align-items: center; min-height: 44px; border: 1.5px solid var(--linea); border-radius: 11px; padding: 9px 14px; cursor: pointer; font-size: 14.5px; background: #120f0c; user-select: none; color: var(--texto); }
+  .choice input { margin: 0 9px 0 0; accent-color: var(--acento2); width: 17px; height: 17px; }
+  .choice:has(input:checked) { border-color: var(--acento); background: #f3b86614; font-weight: 650; }
+  .sub { margin-top: 14px; padding: 15px; border-radius: 12px; background: #120f0c; border: 1px solid #ffffff0a; }
+  .sub label.head { display: block; font-size: 14px; font-weight: 700; margin: 0 0 9px; color: var(--suave); }
+  .callout { background: #f3b8660d; border-left: 3px solid var(--acento); padding: 12px 14px; border-radius: 8px; margin-top: 18px; font-size: 14px; color: var(--suave); line-height: 1.5; }
+  .callout strong { color: var(--texto); }
+  .acciones { align-items: center; }
+  .status { font-size: 14px; color: var(--ok); font-weight: 650; }
+  details.preview { margin-top: 18px; }
+  details.preview summary { cursor: pointer; font-weight: 700; padding: 10px 0; color: var(--acento); }
+  details.preview textarea { display: block; width: 100%; min-height: 340px; padding: 14px; resize: vertical; border: 1px solid var(--linea); border-radius: 10px; background: #120f0c; color: var(--texto); font: 12.5px/1.55 ui-monospace, monospace; }
+  .pasos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 22px; }
+  .pasos div { background: var(--panel); border: 1px solid var(--linea); border-radius: 12px; padding: 14px; font-size: 14px; color: var(--suave); }
+  .pasos b { display: block; color: var(--acento); font-size: 13px; letter-spacing: .5px; margin-bottom: 4px; }
+  .guia ol { margin: 4px 0 0; padding-left: 22px; line-height: 1.6; color: var(--suave); font-size: 14.5px; }
+  .guia ol li { margin-bottom: 6px; }
+  .guia b { color: var(--texto); }
+  .guia ul { margin: 6px 0 0; padding-left: 20px; }
+  .nota { font-size: 13.5px; color: var(--suave); margin-top: 18px; line-height: 1.5; }
+  @media (max-width: 640px) { .pasos { grid-template-columns: 1fr; } .choice { width: 100%; } .acciones > * { width: 100%; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="marca" href="/"><div class="logo">AR</div><div><b>Maquetas AR</b><small>EPET N° 2 · Muestra anual</small></div></a>
+  <nav class="menu"><a href="/">Subir maqueta</a><a href="/render.html" class="activo">Render de maquetas</a><a href="/galeria.html">Galería</a></nav>
+</header>
+<main class="cfg">
+  <h1>Render de maquetas</h1>
+  <p class="bajada">Elegí las opciones, copiá el prompt y pegalo en ChatGPT junto con una captura de tu proyecto de SketchUp.</p>
+  <div class="pasos">
+    <div><b>1 · ELEGÍ</b>Material, aberturas, árboles, agua y fondo.</div>
+    <div><b>2 · COPIÁ</b>Tocá «Copiar prompt».</div>
+    <div><b>3 · PEGÁ</b>En ChatGPT, adjuntá la captura de SketchUp y pegá el prompt.</div>
+  </div>
+  <section class="panel" aria-label="Opciones para el render">
+<fieldset class="group"><legend>1. Material principal</legend><div class="choices">
+<label class="choice"><input type="radio" name="material" value="Madera balsa"> Madera balsa</label>
+<label class="choice"><input type="radio" name="material" value="Cartón blanco"> Cartón blanco</label>
+<label class="choice"><input type="radio" name="material" value="Cartón gris" checked> Cartón gris</label>
+</div></fieldset>
+<fieldset class="group"><legend>2. Aberturas</legend><div class="choices">
+<label class="choice"><input type="radio" name="aberturas" value="Iluminadas (luz ámbar)"> Iluminadas (luz ámbar)</label>
+<label class="choice"><input type="radio" name="aberturas" value="Acetato gris traslúcido" checked> Acetato gris traslúcido</label>
+</div></fieldset>
+<fieldset class="group"><legend>3. Árboles decorativos</legend><div class="choices">
+<label class="choice"><input type="radio" name="arboles" value="Agregar árboles" checked> Agregar árboles</label>
+<label class="choice"><input type="radio" name="arboles" value="No agregar árboles"> No agregar árboles</label>
+</div><div class="sub" id="arbolSettings">
+<label class="head">Color de los árboles</label><div class="choices">
+<label class="choice"><input type="radio" name="color" value="Color natural"> Colores naturales</label>
+<label class="choice"><input type="radio" name="color" value="Mismo material de la maqueta" checked> Mismo material y color de la maqueta</label>
+</div><label class="head" style="margin-top:13px">Forma de los árboles</label><div class="choices">
+<label class="choice"><input type="radio" name="tipo" value="Con copa"> Con copa y follaje</label>
+<label class="choice"><input type="radio" name="tipo" value="Solo ramas" checked> Solo tronco y ramas, sin hojas</label>
+</div></div></fieldset>
+<fieldset class="group"><legend>4. Piscinas y espejos de agua</legend><div class="choices">
+<label class="choice"><input type="radio" name="agua" value="Material de la maqueta"> Material de la maqueta</label>
+<label class="choice"><input type="radio" name="agua" value="Acetato gris traslúcido"> Acetato gris traslúcido</label>
+<label class="choice"><input type="radio" name="agua" value="Agua realista" checked> Agua realista</label>
+</div></fieldset>
+<fieldset class="group"><legend>5. Fondo y base</legend><div class="choices">
+<label class="choice"><input type="radio" name="fondo" value="Todo blanco"> Todo blanco</label>
+<label class="choice"><input type="radio" name="fondo" value="Todo negro" checked> Todo negro</label>
+<label class="choice"><input type="radio" name="fondo" value="Todo gris oscuro"> Todo gris oscuro</label>
+</div></fieldset>
+<div class="callout"><strong>Reglas fijas:</strong> no cambiar la arquitectura ni la cámara. Las personas y los vehículos deben colocarse previamente en SketchUp, a escala; la IA no debe agregarlos. Dinteles de referencia: 2,05 m sobre piso terminado. Solo se podrán agregar árboles cuando se elija esa opción.</div>
+    <div class="acciones">
+      <button class="principal" id="copy" type="button">Copiar prompt</button>
+      <a class="boton" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT</a>
+      <span class="status" id="status" role="status"></span>
+    </div>
+    <details class="preview guia">
+      <summary>¿Y después de copiar el prompt? Paso a paso</summary>
+      <ol>
+        <li><b>Sacá la imagen en SketchUp.</b> Dejá la vista que querés mostrar, ocultá los ejes (<i>Ver › Ejes</i>) y exportá con <i>Archivo › Exportar › Gráfico 2D</i> en JPG o PNG. El render va a respetar esa vista, así que elegila bien.</li>
+        <li><b>Abrí ChatGPT</b> con el botón «Abrir ChatGPT» y entrá con tu cuenta.</li>
+        <li><b>Adjuntá la imagen</b> con el clip o el «+» del chat.</li>
+        <li><b>Pegá el prompt</b> en el mismo mensaje (Ctrl+V, o mantené apretado en el celular) y envialo.</li>
+        <li><b>Esperá</b> uno o dos minutos y <b>descargá la imagen</b>.</li>
+        <li><b>Comparala con tu modelo.</b> Si la IA cambió algo, pedile la corrección en el mismo chat. Por ejemplo: <i>"la ventana de la izquierda era más angosta, corregila sin cambiar nada más"</i>.</li>
+      </ol>
+      <div class="callout" style="margin-top:12px">
+        <strong>Tené en cuenta:</strong>
+        <ul>
+          <li>ChatGPT gratis permite <b>pocas imágenes por día</b>. No regeneres por cualquier cosa: elegí bien la vista antes.</li>
+          <li>Necesitás una cuenta de ChatGPT.</li>
+          <li>El render es para <b>mostrar</b>, no para presentar: la IA puede alterar detalles. El plano y el modelo de SketchUp siguen siendo la referencia.</li>
+        </ul>
+      </div>
+    </details>
+    <details class="preview"><summary>Ver o seleccionar el prompt generado</summary><textarea id="prompt" readonly aria-label="Prompt generado"></textarea></details>
+  </section>
+  <p class="nota">Recordá adjuntar tu imagen de SketchUp en ChatGPT. El resultado de una IA generativa debe compararse con el proyecto original porque puede alterar detalles geométricos.</p>
+</main>
+<script>
+const get=(n)=>document.querySelector(`input[name="${n}"]:checked`).value;
+function build(){
+ const mat=get('material'),abe=get('aberturas'),arb=get('arboles'),color=get('color'),tipo=get('tipo'),agu=get('agua'),fon=get('fondo');
+ document.getElementById('arbolSettings').hidden=arb!=='Agregar árboles';
+ let arbolTexto=arb==='Agregar árboles'?`Incorporar pocos árboles miniatura en los espacios disponibles, sin tapar fachadas ni alterar la arquitectura. Acabado: ${color==='Color natural'?'troncos y follaje con colores naturales, propios de una maqueta física':'árboles monocromáticos realizados con el mismo material '+mat.toLowerCase()+' de la maqueta'}. Aspecto: ${tipo==='Con copa'?'con copa y follaje':'sin hojas, solo tronco y ramas'}. Escala visual coherente con la casa.`:'No agregar árboles nuevos; conservar los ya presentes en la captura.';
+ let aberturaTexto=abe.startsWith('Iluminadas')?'Mostrar luz interior ámbar cálida y, solo cuando corresponda, algunas luminarias exteriores discretas en muros o pequeños faroles.':'Representar las aberturas con acetato gris traslúcido, sin iluminación interior protagonista.';
+ return `Transformá la captura de SketchUp adjunta en una fotografía hiperrealista de una maqueta arquitectónica física de exposición profesional.\n\nCONFIGURACIÓN:\nMaterial principal: ${mat}.\nAberturas: ${abe}.\nÁrboles: ${arb}.${arb==='Agregar árboles'?`\nColor de árboles: ${color}.\nTipo de árboles: ${tipo}.`:''}\nPiscinas y espejos de agua existentes: ${agu}.\nFondo y base: ${fon}.\n\nREGLAS OBLIGATORIAS:\n1. Conservar el mismo ángulo de cámara, encuadre, perspectiva, geometría, volumetría, cubiertas, aberturas y demás componentes arquitectónicos. No rediseñar, agregar, quitar ni desplazar elementos constructivos.\n2. Representar los elementos constructivos con ${mat.toLowerCase()}, respetando la geometría original.\n3. ${aberturaTexto}\n4. No agregar personas, vehículos ni mobiliario. Si ya aparecen en la captura, conservar sus cantidades, ubicaciones y proporciones. Tomar los dinteles de las aberturas a 2,05 m sobre el nivel de piso terminado como referencia de escala.\n5. ${arbolTexto}\n6. Aplicar ${agu.toLowerCase()} únicamente donde ya existan piscinas o espejos de agua; no inventar elementos de agua.\n7. Fondo y base ${fon.toLowerCase()}, uniformes. Iluminación profesional de estudio, sombras suaves y texturas realistas de maqueta física.\n8. No agregar jardines, caminos, personas, vehículos ni elementos paisajísticos distintos de los árboles permitidos. Sin textos, logotipos ni marcas de agua.\n\nGenerar directamente la imagen final, priorizando la fidelidad arquitectónica, la escala y el encuadre originales sobre cualquier mejora estética.`;
+}
+function refresh(){document.getElementById('prompt').value=build();document.getElementById('status').textContent=''}
+document.querySelectorAll('input').forEach(el=>el.addEventListener('change',refresh));
+document.getElementById('copy').addEventListener('click',async()=>{
+ let value=build();const box=document.getElementById('prompt'),status=document.getElementById('status');
+ try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{box.select();if(!document.execCommand('copy'))throw new Error('No copy support')}status.textContent='✓ Prompt copiado'}
+ catch(e){document.querySelector('details.preview').open=true;box.focus();box.select();status.textContent='Seleccionado: copiá manualmente con Ctrl+C'}
+});
+refresh();
+</script>
+</body>
+</html>

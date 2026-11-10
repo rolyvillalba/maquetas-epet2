@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0908">
+<title>Maqueta · EPET N° 2</title>
+<script type="module" src="/js/model-viewer.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b0908; color: #f3ece2; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  body { background: radial-gradient(ellipse at 50% 45%, #2b2219 0%, #0b0908 68%); }
+  model-viewer { position: fixed; inset: 0; width: 100%; height: 100%; background: transparent; --poster-color: transparent; }
+  .cab { position: fixed; top: 0; left: 0; right: 0; padding: calc(16px + env(safe-area-inset-top)) 20px 30px; background: linear-gradient(#0b0908ee, #0b090800); pointer-events: none; z-index: 2; }
+  .cab small { color: #f3c98b; letter-spacing: 1.5px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; }
+  .cab h1 { margin: 6px 0 4px; font-size: clamp(22px, 6vw, 34px); letter-spacing: -.4px; line-height: 1.1; }
+  .cab p { margin: 0; color: #b3a493; font-size: 14.5px; }
+  .pie { position: fixed; left: 0; right: 0; bottom: 0; padding: 20px 18px calc(22px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; background: linear-gradient(#0b090800, #0b0908dd); z-index: 2; }
+  .btnAR { border: 0; border-radius: 999px; padding: 16px 28px; font: 800 17px system-ui, sans-serif; color: #1d1208; background: linear-gradient(180deg, #f3b866, #e39a3b); box-shadow: 0 10px 30px #e39a3b55; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .pista { color: #b3a493; font-size: 13px; text-align: center; max-width: 340px; }
+  .carga { position: fixed; inset: 0; display: grid; place-items: center; z-index: 3; pointer-events: none; }
+  .carga div { text-align: center; color: #b3a493; font-size: 14px; }
+  .carga i { display: block; width: 180px; height: 6px; border-radius: 9px; background: #ffffff14; overflow: hidden; margin: 12px auto 0; }
+  .carga i b { display: block; height: 100%; width: 5%; background: #f3b866; transition: width .2s; }
+  .escritorio { position: fixed; right: 20px; bottom: 20px; background: #1a1612ee; border: 1px solid #3a3027; border-radius: 14px; padding: 14px; display: none; align-items: center; gap: 14px; z-index: 3; max-width: 330px; font-size: 14px; color: #b3a493; }
+  .escritorio canvas { width: 110px; height: 110px; border-radius: 8px; flex: none; }
+  .escritorio b { color: #f3ece2; display: block; margin-bottom: 4px; }
+  .error { position: fixed; inset: 0; display: none; place-items: center; text-align: center; padding: 30px; color: #b3a493; z-index: 4; }
+  .error b { display: block; color: #f3ece2; font-size: 20px; margin-bottom: 8px; }
+  .volver { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 14px; z-index: 3; color: #b3a493; font-size: 13px; text-decoration: none; background: #0008; padding: 7px 12px; border-radius: 999px; }
+  model-viewer::part(default-progress-bar) { display: none; }
+</style>
+</head>
+<body>
+<a class="volver" href="/galeria.html">Ver todas</a>
+<div class="cab"><small>EPET N° 2 · Muestra anual</small><h1 id="titulo">&nbsp;</h1><p id="sub"></p></div>
+
+<model-viewer id="mv" camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="2500" rotation-per-second="12deg"
+  shadow-intensity="1.2" shadow-softness="0.8" exposure="1.3" environment-image="/entorno.png" tone-mapping="neutral" field-of-view="28deg"
+  camera-orbit="-32deg 62deg auto" ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
+  interaction-prompt="none">
+  <button slot="ar-button" class="btnAR" id="btnAR" style="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom));z-index:5">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+    Ver sobre la mesa
+  </button>
+</model-viewer>
+
+<div class="pie"><div class="pista" id="pista">Girá la maqueta con el dedo · pellizcá para acercar</div></div>
+<div class="carga" id="carga"><div>Cargando maqueta…<i><b id="barra"></b></i></div></div>
+<div class="escritorio" id="escritorio"><canvas id="qr" width="330" height="330"></canvas><div><b>Para verla en realidad aumentada</b>escaneá este código con el celular</div></div>
+<div class="error" id="error"><div><b>No encontramos esta maqueta</b><span id="errorTxt">Revisá el código QR o preguntá al profe.</span></div></div>
+
+<script type="module">
+import * as C from "/js/comun.js";
+const $ = (id) => document.getElementById(id);
+const mv = $("mv");
+const id = (new URLSearchParams(location.search).get("id") || location.pathname.split("/m/")[1] || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+
+function fallo(t) { $("carga").style.display = "none"; $("error").style.display = "grid"; if (t) $("errorTxt").textContent = t; }
+
+(async () => {
+  let m;
+  try { m = await C.obtener(id); } catch { return fallo(); }
+  if (!m.version) return fallo("Este proyecto todavía no tiene una maqueta cargada.");
+  document.title = m.titulo + " · Maquetas AR";
+  $("titulo").textContent = m.titulo;
+  $("sub").textContent = [m.alumnos, m.curso].filter(Boolean).join(" · ");
+  try {
+    const { url, directa } = await C.urlModelo(m, (p) => ($("barra").style.width = Math.max(5, p * 100) + "%"));
+    // Scene Viewer (Android sin WebXR) necesita una URL pública, no un blob
+    if (!directa) mv.setAttribute("ar-modes", "webxr quick-look");
+    mv.src = url;
+  } catch (e) { return fallo(e.message); }
+
+  mv.addEventListener("progress", (e) => ($("barra").style.width = Math.max(5, e.detail.totalProgress * 100) + "%"));
+  mv.addEventListener("load", () => {
+    $("carga").style.display = "none";
+    if (!mv.canActivateAR) {
+      $("btnAR").style.display = "none";
+      const movil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (!movil) {
+        $("qr").getContext("2d").drawImage(C.dibujarQR(C.urlMaqueta(m.id), 330, 3), 0, 0);
+        $("escritorio").style.display = "flex";
+      } else {
+        $("pista").textContent = "Este celular no admite realidad aumentada, pero podés girar la maqueta con el dedo.";
+      }
+    }
+  });
+  mv.addEventListener("error", () => fallo("No se pudo abrir el modelo 3D."));
+  mv.addEventListener("ar-status", (e) => {
+    if (e.detail.status === "failed") $("pista").textContent = "No se pudo iniciar la realidad aumentada. Probá apuntando a una mesa con buena luz.";
+  });
+})();
+</script>
+</body>
+</html>

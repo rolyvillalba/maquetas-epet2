@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galería · Maquetas AR · EPET N° 2</title>
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+<header class="top">
+  <a class="marca" href="/"><div class="logo">AR</div><div><b>Maquetas AR</b><small>EPET N° 2 · Muestra anual</small></div></a>
+  <nav class="menu"><a href="/">Subir maqueta</a><a href="/render.html">Render de maquetas</a><a href="/galeria.html" class="activo">Galería</a></nav>
+</header>
+<main>
+  <h1>Galería de maquetas</h1>
+  <p class="bajada" id="bajada">Tocá una maqueta para verla en 3D o en realidad aumentada.</p>
+  <div class="panel oculto" id="panelProfe" style="margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <b style="margin-right:auto">Modo profe</b>
+    <button class="chico" id="btnTodas">Descargar todas las fichas</button>
+    <button class="chico" id="btnSalir">Salir</button>
+  </div>
+  <div class="filtros" id="filtros"></div>
+  <div class="tarjetas" id="tarjetas"></div>
+  <p style="margin-top:40px;font-size:13px;color:#6f6152">¿Sos profe? <a href="#" id="linkProfe">Entrar al modo profe</a></p>
+</main>
+<script type="module">
+import * as C from "/js/comun.js";
+const $ = (id) => document.getElementById(id);
+const NOMBRES = { madera: "Madera", "carton-blanco": "Cartón blanco", "carton-gris": "Cartón gris" };
+let todos = [], filtro = "Todos", clave = null;
+try { clave = sessionStorage.getItem("claveProfe"); } catch {}
+
+async function cargar() {
+  try { todos = await C.listar(); } catch (e) { $("tarjetas").innerHTML = `<p class="nada">No se pudo cargar la galería (${C.esc(e.message)})</p>`; return; }
+  pintar();
+}
+
+function pintar() {
+  const cursos = ["Todos", ...new Set(todos.map((m) => m.curso || "Sin curso"))];
+  $("filtros").innerHTML = cursos.map((c) => `<button class="${c === filtro ? "sel" : ""}" data-c="${C.esc(c)}">${C.esc(c)}</button>`).join("");
+  $("filtros").querySelectorAll("button").forEach((b) => (b.onclick = () => { filtro = b.dataset.c; pintar(); }));
+  const lista = todos.filter((m) => filtro === "Todos" || (m.curso || "Sin curso") === filtro);
+  $("bajada").textContent = `${todos.length} maqueta${todos.length === 1 ? "" : "s"} publicada${todos.length === 1 ? "" : "s"}. Tocá una para verla en 3D o en realidad aumentada.`;
+  $("panelProfe").classList.toggle("oculto", !clave);
+  if (!lista.length) { $("tarjetas").innerHTML = `<p class="nada">Todavía no hay maquetas publicadas.</p>`; return; }
+  $("tarjetas").innerHTML = lista.map((m) => `
+    <div class="tarjeta">
+      <a href="/m/${m.id}" style="color:inherit;text-decoration:none">
+        <div class="img" style="${C.urlPoster(m) ? `background-image:url('${C.urlPoster(m)}')` : ""}"></div>
+        <div class="txt"><b>${C.esc(m.titulo)}</b><small>${C.esc(m.alumnos || "")}</small>
+          <span class="chip">${C.esc(m.curso || "Sin curso")}</span> <span class="chip">${NOMBRES[m.estilo] || ""}</span></div>
+      </a>
+      ${clave ? `<div class="admin">
+        <button class="chico" data-ficha="${m.id}">Ficha</button>
+        <button class="chico" data-borrar="${m.id}" style="color:var(--error)">Borrar</button></div>` : ""}
+    </div>`).join("");
+  document.querySelectorAll("[data-ficha]").forEach((b) => (b.onclick = () => ficha(todos.find((m) => m.id === b.dataset.ficha))));
+  document.querySelectorAll("[data-borrar]").forEach((b) => (b.onclick = async () => {
+    const m = todos.find((x) => x.id === b.dataset.borrar);
+    if (!confirm(`¿Borrar "${m.titulo}"? El QR deja de funcionar.`)) return;
+    try { await C.borrar(m.id, null, clave); todos = todos.filter((x) => x.id !== m.id); pintar(); } catch (e) { alert(e.message); }
+  }));
+}
+
+async function ficha(m) { C.descargarCanvas(await C.generarFicha(m, C.urlPoster(m)), `Ficha-${C.slug(m.curso)}-${C.slug(m.titulo)}.png`); }
+
+$("linkProfe").onclick = async (e) => {
+  e.preventDefault();
+  const k = prompt("Clave del profe:");
+  if (!k) return;
+  // se valida contra cualquier proyecto existente
+  if (todos[0]) { try { await C.verificar(todos[0].id, null, k); } catch { return alert("Clave incorrecta"); } }
+  clave = k; try { sessionStorage.setItem("claveProfe", k); } catch {}
+  pintar();
+};
+$("btnSalir").onclick = () => { clave = null; try { sessionStorage.removeItem("claveProfe"); } catch {} pintar(); };
+$("btnTodas").onclick = async () => {
+  const lista = todos.filter((m) => filtro === "Todos" || (m.curso || "Sin curso") === filtro);
+  for (const m of lista) { await ficha(m); await new Promise((r) => setTimeout(r, 700)); }
+};
+cargar();
+</script>
+</body>
+</html>

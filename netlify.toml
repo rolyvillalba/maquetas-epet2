@@ -1,0 +1,8 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/m/:id"
+  to = "/ver.html?id=:id"
+  status = 200

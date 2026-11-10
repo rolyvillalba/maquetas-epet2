@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subir maqueta · Maquetas AR · EPET N° 2</title>
+<link rel="stylesheet" href="/estilos.css">
+<script type="module" src="/js/model-viewer.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <a class="marca" href="/"><div class="logo">AR</div><div><b>Maquetas AR</b><small>EPET N° 2 · Muestra anual</small></div></a>
+  <nav class="menu"><a href="/" class="activo">Subir maqueta</a><a href="/render.html">Render de maquetas</a><a href="/galeria.html">Galería</a></nav>
+</header>
+
+<main>
+  <h1>Subí tu maqueta</h1>
+  <p class="bajada">Cargás el archivo exportado de SketchUp, elegís el material y la página te devuelve la maqueta lista para ver en realidad aumentada, con su QR y una ficha para imprimir al lado del plano.</p>
+
+  <div class="pestanas">
+    <button id="tabNuevo" class="sel">Proyecto nuevo</button>
+    <button id="tabEditar">Actualizar mi proyecto</button>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <div id="bloqueEditar" class="bloque oculto">
+        <p class="paso"><span>0</span>Buscá tu proyecto</p>
+        <label class="campo">Link o código del proyecto<input id="eId" placeholder="ej: k7m2pqr"></label>
+        <label class="campo">Código de edición (te lo dio la página al publicar)<input id="eToken" placeholder="ej: H4KX9P" autocapitalize="characters"></label>
+        <button id="btnBuscar" class="ancho">Buscar</button>
+        <div id="estadoEditar" class="estado"></div>
+      </div>
+
+      <div class="bloque" id="bloqueDatos">
+        <p class="paso"><span>1</span>Datos del proyecto</p>
+        <label class="campo">Nombre del proyecto<input id="titulo" maxlength="80" placeholder="ej: Vivienda en Plottier"></label>
+        <label class="campo">Alumnos<input id="alumnos" maxlength="160" placeholder="ej: Juan P., Sofía G."></label>
+        <label class="campo">Curso<input id="curso" maxlength="30" placeholder="ej: 5° 2°" list="cursos"></label>
+        <datalist id="cursos"><option>4° 1°</option><option>4° 2°</option><option>5° 1°</option><option>5° 2°</option><option>6° 1°</option><option>6° 2°</option></datalist>
+      </div>
+
+      <div class="bloque">
+        <p class="paso"><span>2</span>Archivo de SketchUp</p>
+        <div class="zona" id="zona">
+          <b>Arrastrá el archivo acá o tocá para elegirlo</b>
+          .dae (recomendado) · .glb · .kmz · .stl · .obj
+          <div class="nombre" id="nombreArchivo"></div>
+        </div>
+        <input type="file" id="archivo" accept=".dae,.glb,.gltf,.stl,.obj,.kmz,.zip,.skp" hidden>
+        <details class="ayuda">
+          <summary>¿Cómo exporto desde SketchUp?</summary>
+          <ol>
+            <li>Ocultá o borrá lo que no va en la maqueta (muebles pesados, autos, plantas 3D, personas en 3D).</li>
+            <li>Andá a <b>Archivo › Exportar › Modelo 3D</b>.</li>
+            <li>Elegí <b>COLLADA (*.dae)</b> y guardá. Si tu versión tiene <b>glTF (*.glb)</b>, también sirve.</li>
+            <li>En SketchUp para web (gratis): <b>Descargar › STL</b>.</li>
+          </ol>
+          Los vidrios (materiales transparentes) se detectan solos y toman el acabado de ventana que elijas.
+        </details>
+      </div>
+
+      <div class="bloque">
+        <p class="paso"><span>3</span>Estilo de maqueta</p>
+        <div class="estilos" id="estilos">
+          <div class="estilo sel" data-estilo="madera"><div class="muestra m-madera"></div>Madera balsa</div>
+          <div class="estilo" data-estilo="carton-blanco"><div class="muestra m-carton-blanco"></div>Cartón blanco</div>
+          <div class="estilo" data-estilo="carton-gris"><div class="muestra m-carton-gris"></div>Cartón gris</div>
+        </div>
+        <p style="margin:16px 0 8px;font-size:13px;color:var(--suave)">Ventanas</p>
+        <div class="estilos" id="ventanas">
+          <div class="estilo ventana sel" data-v="gris"><div class="muestra" style="background:linear-gradient(160deg,#5b6066,#2f3236 55%,#3d4146)"></div>Acetato gris</div>
+          <div class="estilo ventana" data-v="luz"><div class="muestra" style="background:radial-gradient(circle at 50% 60%,#ffd59a,#ffa64a 60%,#c9772c)"></div>Iluminadas</div>
+          <div class="estilo ventana" data-v="negro"><div class="muestra" style="background:#0e0e0f"></div>Negras</div>
+        </div>
+        <div class="opciones">
+          <label><input type="checkbox" id="optBase" checked> Base de maqueta</label>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <button class="principal ancho" id="btnPublicar" disabled>Publicar maqueta</button>
+        <div class="barra" id="barra"><i></i></div>
+        <div class="estado" id="estado"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="visor">
+        <model-viewer id="mv" camera-controls touch-action="pan-y" shadow-intensity="1.1" shadow-softness="0.8"
+          exposure="1.3" environment-image="/entorno.png" tone-mapping="neutral" field-of-view="28deg" camera-orbit="-32deg 62deg 72%"
+          interaction-prompt="none"></model-viewer>
+        <div class="vacio" id="vacio">Acá vas a ver tu maqueta<br>apenas cargues el archivo</div>
+        <div class="info oculto" id="info"></div>
+        <button class="girar chico oculto" id="btnGirar" title="Usalo si la maqueta aparece acostada">↻ Enderezar</button>
+      </div>
+
+      <div class="panel resultado" id="resultado">
+        <p class="paso" style="margin-bottom:16px"><span>✓</span>¡Maqueta publicada!</p>
+        <div class="contenido">
+          <canvas class="qr" id="qr"></canvas>
+          <div>
+            <div class="enlace" id="enlace"></div>
+            <p style="margin:14px 0 2px;color:var(--suave);font-size:14px">Código para actualizarla más adelante (anotalo):</p>
+            <div class="codigo" id="codigo"></div>
+            <p style="margin:6px 0 0;color:var(--suave);font-size:13px">Si cambiás el modelo, el QR sigue siendo el mismo.</p>
+            <div class="acciones">
+              <button class="principal" id="btnFicha">Descargar ficha para imprimir</button>
+              <button id="btnQR">Descargar QR</button>
+              <a class="boton" id="btnVer" target="_blank">Ver maqueta</a>
+              <button id="btnCopiar">Copiar link de edición</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+import { leerArchivo, aplicarEstilo, exportarGLB } from "/js/estilo.js";
+import * as C from "/js/comun.js";
+
+const $ = (id) => document.getElementById(id);
+const mv = $("mv");
+let raiz = null, glb = null, triangulos = 0, giro = 0, estilo = "madera", ventanas = "gris";
+let editando = null; // { meta, token }
+let ultimaURL = null;
+
+// ---------- Pestañas ----------
+function modo(editar) {
+  $("tabNuevo").classList.toggle("sel", !editar);
+  $("tabEditar").classList.toggle("sel", editar);
+  $("bloqueEditar").classList.toggle("oculto", !editar);
+  if (!editar) { editando = null; $("estadoEditar").textContent = ""; }
+  actualizarBoton();
+}
+$("tabNuevo").onclick = () => modo(false);
+$("tabEditar").onclick = () => modo(true);
+
+$("btnBuscar").onclick = async () => {
+  const raw = $("eId").value.trim();
+  const id = (raw.match(/\/m\/([a-z0-9]+)/i)?.[1] || raw).toLowerCase();
+  const token = $("eToken").value.trim().toUpperCase();
+  const st = $("estadoEditar");
+  st.className = "estado"; st.textContent = "Buscando…";
+  try {
+    const meta = await C.verificar(id, token);
+    editando = { meta, token };
+    $("titulo").value = meta.titulo; $("alumnos").value = meta.alumnos || ""; $("curso").value = meta.curso || "";
+    elegirEstilo(meta.estilo || "madera");
+    st.className = "estado ok";
+    st.textContent = "Proyecto encontrado. Cargá el archivo nuevo (o cambiá los datos) y tocá Publicar.";
+  } catch (e) {
+    editando = null; st.className = "estado error"; st.textContent = e.message;
+  }
+  actualizarBoton();
+};
+
+// link de edición: /?id=xxx&codigo=YYY
+const qs = new URLSearchParams(location.search);
+if (qs.get("id")) { modo(true); $("eId").value = qs.get("id"); $("eToken").value = qs.get("codigo") || ""; if (qs.get("codigo")) $("btnBuscar").click(); }
+
+// ---------- Archivo ----------
+const zona = $("zona");
+zona.onclick = () => $("archivo").click();
+zona.ondragover = (e) => { e.preventDefault(); zona.classList.add("sobre"); };
+zona.ondragleave = () => zona.classList.remove("sobre");
+zona.ondrop = (e) => { e.preventDefault(); zona.classList.remove("sobre"); if (e.dataTransfer.files[0]) cargar(e.dataTransfer.files[0]); };
+$("archivo").onchange = (e) => e.target.files[0] && cargar(e.target.files[0]);
+
+function estado(t, tipo = "") { const s = $("estado"); s.className = "estado " + tipo; s.textContent = t; }
+
+async function cargar(file) {
+  $("nombreArchivo").textContent = file.name + " · " + (file.size / 1048576).toFixed(1) + " MB";
+  estado("Leyendo el archivo…");
+  raiz = null; glb = null; giro = 0; actualizarBoton();
+  await new Promise((r) => setTimeout(r, 30));
+  try {
+    raiz = await leerArchivo(file);
+    await procesar();
+  } catch (e) {
+    console.error(e);
+    estado(e.message || "No se pudo leer el archivo", "error");
+  }
+}
+
+async function procesar() {
+  if (!raiz) return;
+  estado("Aplicando el estilo…");
+  await new Promise((r) => setTimeout(r, 30));
+  try {
+    const r = aplicarEstilo(raiz, { estilo, ventanas, base: $("optBase").checked, giro });
+    triangulos = r.triangulos;
+    glb = await exportarGLB(r.escena);
+    if (ultimaURL) URL.revokeObjectURL(ultimaURL);
+    ultimaURL = URL.createObjectURL(new Blob([glb], { type: "model/gltf-binary" }));
+    mv.src = ultimaURL;
+    $("vacio").classList.add("oculto");
+    const mb = glb.byteLength / 1048576;
+    $("info").textContent = `${triangulos.toLocaleString("es-AR")} triángulos · ${mb.toFixed(1)} MB`;
+    $("info").classList.remove("oculto");
+    $("btnGirar").classList.remove("oculto");
+    if (mb > 25) estado("La maqueta es muy pesada (" + mb.toFixed(0) + " MB). Borrá muebles, plantas o detalles en SketchUp y volvé a exportar.", "error");
+    else if (mb > 5) estado("Lista. Es algo pesada (" + mb.toFixed(1) + " MB): va a tardar más en abrir en el celular.", "");
+    else estado("Lista para publicar. Revisá cómo quedó a la derecha.", "ok");
+  } catch (e) {
+    console.error(e);
+    glb = null;
+    estado(e.message || "No se pudo procesar la maqueta", "error");
+  }
+  actualizarBoton();
+}
+
+function elegirEstilo(e) {
+  estilo = e;
+  document.querySelectorAll("[data-estilo]").forEach((el) => el.classList.toggle("sel", el.dataset.estilo === e));
+}
+document.querySelectorAll("[data-estilo]").forEach((el) => (el.onclick = () => { elegirEstilo(el.dataset.estilo); procesar(); }));
+document.querySelectorAll("[data-v]").forEach((el) => (el.onclick = () => {
+  ventanas = el.dataset.v;
+  document.querySelectorAll("[data-v]").forEach((x) => x.classList.toggle("sel", x === el));
+  procesar();
+}));
+$("optBase").onchange = procesar;
+$("btnGirar").onclick = () => { giro = (giro + 1) % 4; procesar(); };
+["titulo", "alumnos", "curso"].forEach((id) => $(id).addEventListener("input", actualizarBoton));
+
+function actualizarBoton() {
+  const okDatos = $("titulo").value.trim().length > 1;
+  const enEdicion = !$("bloqueEditar").classList.contains("oculto");
+  const pesoOk = glb && glb.byteLength < 25 * 1048576;
+  $("btnPublicar").disabled = enEdicion ? !(editando && okDatos) : !(okDatos && pesoOk);
+  $("btnPublicar").textContent = enEdicion ? (glb ? "Publicar versión nueva" : "Guardar datos") : "Publicar maqueta";
+}
+
+// ---------- Publicar ----------
+function barra(p) { $("barra").style.display = "block"; $("barra").firstElementChild.style.width = Math.round(p * 100) + "%"; }
+
+async function portada() {
+  // espera a que el visor termine de cargar y saca una imagen
+  if (!mv.loaded) await new Promise((r) => mv.addEventListener("load", r, { once: true }));
+  await new Promise((r) => setTimeout(r, 400));
+  let blob = await mv.toBlob({ mimeType: "image/png", idealAspect: true });
+  const img = await createImageBitmap(blob);
+  const w = Math.min(900, img.width), h = Math.round(img.height * (w / img.width));
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const x = c.getContext("2d");
+  const g = x.createRadialGradient(w / 2, h * 0.4, 10, w / 2, h * 0.4, Math.max(w, h) * 0.7);
+  g.addColorStop(0, "#2a221a"); g.addColorStop(1, "#0b0908");
+  x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.drawImage(img, 0, 0, w, h);
+  return await new Promise((r) => c.toBlob(r, "image/jpeg", 0.8));
+}
+
+$("btnPublicar").onclick = async () => {
+  const btn = $("btnPublicar");
+  btn.disabled = true;
+  const datos = { titulo: $("titulo").value.trim(), alumnos: $("alumnos").value.trim(), curso: $("curso").value.trim(), estilo };
+  try {
+    let meta, token;
+    if (editando) {
+      ({ token } = editando);
+      estado("Guardando datos…");
+      meta = await C.actualizarDatos(editando.meta.id, token, datos);
+    } else {
+      estado("Creando el proyecto…");
+      const r = await C.crear(datos);
+      token = r.token;
+      meta = { id: r.id, version: 0, ...datos };
+      try { const mis = JSON.parse(localStorage.getItem("misMaquetas") || "[]"); mis.push({ id: r.id, token, titulo: datos.titulo }); localStorage.setItem("misMaquetas", JSON.stringify(mis)); } catch {}
+    }
+    if (glb) {
+      estado("Subiendo la maqueta…");
+      barra(0);
+      meta = await C.subirModelo(meta, token, glb, { triangulos, estilo }, (p) => barra(p * 0.9));
+      estado("Generando la portada…");
+      try { await C.subirPoster(meta.id, token, await portada()); meta.poster = Date.now(); } catch (e) { console.warn("portada", e); }
+      barra(1);
+    }
+    editando = { meta, token };
+    mostrarResultado(meta, token);
+    estado("¡Listo! Ya se puede ver con el QR.", "ok");
+  } catch (e) {
+    console.error(e);
+    estado(e.message || "No se pudo publicar", "error");
+  }
+  actualizarBoton();
+};
+
+function mostrarResultado(meta, token) {
+  const url = C.urlMaqueta(meta.id);
+  const qr = C.dibujarQR(url, 440);
+  const c = $("qr"); c.width = c.height = 440; c.getContext("2d").drawImage(qr, 0, 0);
+  $("enlace").textContent = url;
+  $("codigo").textContent = token;
+  $("btnVer").href = url;
+  const linkEdicion = `${location.origin}/?id=${meta.id}&codigo=${token}`;
+  $("btnCopiar").onclick = async () => { try { await navigator.clipboard.writeText(linkEdicion); $("btnCopiar").textContent = "¡Copiado!"; } catch { prompt("Copiá este link:", linkEdicion); } };
+  $("btnQR").onclick = () => C.descargarCanvas(C.dibujarQR(url, 1200), `QR-${C.slug(meta.titulo)}.png`);
+  $("btnFicha").onclick = async () => C.descargarCanvas(await C.generarFicha(meta, C.urlPoster(meta)), `Ficha-${C.slug(meta.titulo)}.png`);
+  $("resultado").style.display = "block";
+  $("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+</script>
+</body>
+</html>
