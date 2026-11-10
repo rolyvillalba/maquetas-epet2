@@ -27,7 +27,7 @@ const newId = () => randomId(7, "abcdefghjkmnpqrstuvwxyz23456789");
 const newToken = () => randomId(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
 
 const clean = (s, max) => String(s ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max);
-const ESTILOS = ["madera", "carton-blanco", "carton-gris"];
+const ESTILOS = ["madera", "carton-blanco", "carton-gris", "original"];
 
 function publicMeta(m) {
   const { tokenHash, ...rest } = m;

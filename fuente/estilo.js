@@ -1,5 +1,5 @@
 // Procesa la maqueta: lee el archivo exportado de SketchUp, le aplica el estilo
-// (madera / cartón blanco / cartón gris), ilumina las ventanas, agrega base
+// (madera / cartón blanco / cartón gris / original de SketchUp), resuelve las ventanas, agrega base
 // y la exporta como .glb listo para realidad aumentada.
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -9,55 +9,92 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import JSZip from "jszip";
+import { WebIO } from "@gltf-transform/core";
+import { KHRDracoMeshCompression } from "@gltf-transform/extensions";
+import { draco, weld } from "@gltf-transform/functions";
+import DracoEncoderModule from "draco3d/draco_encoder_nodejs.js";
 
 export const FORMATOS = [".dae", ".glb", ".gltf", ".stl", ".obj", ".kmz", ".zip"];
 
 // ---------- Lectura ----------
 const BLANK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+const ES_IMAGEN = /\.(png|jpe?g|bmp|tga|gif|tif+|webp)$/i;
+const NOMBRE_BLOB = new Map(); // blob url -> nombre de archivo original
+const base = (url) => decodeURIComponent(String(url).split(/[\\/]/).pop().split("?")[0]).toLowerCase();
 
-function manager() {
+// Manager que resuelve las texturas desde los archivos subidos (zip, kmz o sueltos)
+function manager(imagenes, info) {
   const m = new THREE.LoadingManager();
-  // ignoramos las texturas del modelo (el estilo las reemplaza)
-  m.setURLModifier((url) => (/\.(png|jpe?g|bmp|tga|gif|tif+)$/i.test(url) ? BLANK : url));
+  let pendientes = 0, avisar = null;
+  m.itemStart = () => pendientes++;
+  m.itemEnd = m.itemError = () => { if (--pendientes <= 0 && avisar) avisar(); };
+  m.listo = () => new Promise((ok) => {
+    if (pendientes <= 0) return setTimeout(ok, 30);
+    avisar = ok;
+    setTimeout(ok, 15000); // por las dudas
+  });
+  m.setURLModifier((url) => {
+    if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+    if (!ES_IMAGEN.test(url)) return url;
+    const k = base(url);
+    if (imagenes.has(k)) { info.texturas.add(k); return imagenes.get(k); }
+    info.faltantes.add(k);
+    return BLANK;
+  });
   return m;
 }
 
-async function daeDesdeZip(buf) {
-  const zip = await JSZip.loadAsync(buf);
-  const f = Object.values(zip.files).find((x) => !x.dir && /\.dae$/i.test(x.name));
-  if (!f) throw new Error("El archivo comprimido no tiene ningún .dae adentro.");
-  return await f.async("string");
-}
+/**
+ * files: lista de File (el modelo y, opcionalmente, sus texturas).
+ * Devuelve { raiz, info: { texturas, faltantes } }
+ */
+export async function leerArchivo(entrada) {
+  const files = Array.isArray(entrada) ? entrada : [entrada];
+  const ext = (f) => f.name.toLowerCase().slice(f.name.lastIndexOf("."));
+  if (files.some((f) => ext(f) === ".skp") && !files.some((f) => FORMATOS.includes(ext(f)))) {
+    throw new Error("El archivo .skp no se puede leer directo. En SketchUp andá a Archivo › Exportar › Modelo 3D y elegí COLLADA (.dae) o Google Earth (.kmz).");
+  }
+  const file = files.find((f) => FORMATOS.includes(ext(f)));
+  if (!file) throw new Error("No encontré el modelo. Usá .dae, .kmz, .glb, .stl u .obj");
+  const e = ext(file);
 
-export async function leerArchivo(file) {
-  const name = file.name.toLowerCase();
-  const ext = name.slice(name.lastIndexOf("."));
-  if (ext === ".skp") {
-    throw new Error("El archivo .skp no se puede leer directo. En SketchUp andá a Archivo › Exportar › Modelo 3D y elegí COLLADA (.dae).");
-  }
+  const imagenes = new Map();
+  const registrar = (nombre, blob) => {
+    const u = URL.createObjectURL(blob);
+    NOMBRE_BLOB.set(u, nombre.toLowerCase());
+    imagenes.set(base(nombre), u);
+  };
+  for (const f of files) if (ES_IMAGEN.test(f.name)) registrar(f.name, f);
+  const info = { texturas: new Set(), faltantes: new Set() };
+  const mgr = manager(imagenes, info);
   const buf = await file.arrayBuffer();
+
   let obj, zUp = false;
-  if (ext === ".glb" || ext === ".gltf") {
-    const g = await new GLTFLoader(manager()).parseAsync(buf, "");
-    obj = g.scene;
-  } else if (ext === ".dae") {
-    obj = new ColladaLoader(manager()).parse(new TextDecoder().decode(buf), "").scene;
-  } else if (ext === ".kmz" || ext === ".zip") {
-    obj = new ColladaLoader(manager()).parse(await daeDesdeZip(buf), "").scene;
-  } else if (ext === ".stl") {
-    const geo = new STLLoader().parse(buf);
-    obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial());
+  if (e === ".glb" || e === ".gltf") {
+    obj = (await new GLTFLoader(mgr).parseAsync(buf, "")).scene;
+  } else if (e === ".dae") {
+    obj = new ColladaLoader(mgr).parse(new TextDecoder().decode(buf), "").scene;
+  } else if (e === ".kmz" || e === ".zip") {
+    const zip = await JSZip.loadAsync(buf);
+    const entradas = Object.values(zip.files).filter((x) => !x.dir);
+    const dae = entradas.find((x) => /\.dae$/i.test(x.name));
+    if (!dae) throw new Error("El archivo comprimido no tiene ningún .dae adentro.");
+    for (const x of entradas) {
+      if (ES_IMAGEN.test(x.name)) registrar(x.name, await x.async("blob"));
+    }
+    obj = new ColladaLoader(mgr).parse(await dae.async("string"), "").scene;
+  } else if (e === ".stl") {
+    obj = new THREE.Mesh(new STLLoader().parse(buf), new THREE.MeshStandardMaterial({ color: 0xdddddd }));
     zUp = true; // SketchUp exporta STL con Z hacia arriba
-  } else if (ext === ".obj") {
-    obj = new OBJLoader(manager()).parse(new TextDecoder().decode(buf));
-  } else {
-    throw new Error("Formato no admitido. Usá .dae (recomendado), .glb, .stl u .obj");
+  } else if (e === ".obj") {
+    obj = new OBJLoader(mgr).parse(new TextDecoder().decode(buf));
   }
-  const root = new THREE.Group();
+  await mgr.listo();
+  const raiz = new THREE.Group();
   if (zUp) obj.rotation.x = -Math.PI / 2;
-  root.add(obj);
-  root.updateMatrixWorld(true);
-  return root;
+  raiz.add(obj);
+  raiz.updateMatrixWorld(true);
+  return { raiz, info: { texturas: info.texturas.size, faltantes: [...info.faltantes] } };
 }
 
 // ---------- Texturas procedurales ----------
@@ -166,6 +203,7 @@ function prepararGeo(geo, matrix) {
   const keep = new THREE.BufferGeometry();
   keep.setAttribute("position", g.getAttribute("position").clone());
   if (g.getAttribute("normal")) keep.setAttribute("normal", g.getAttribute("normal").clone());
+  if (g.getAttribute("uv")) keep.setAttribute("uv", g.getAttribute("uv").clone());
   keep.applyMatrix4(matrix);
   if (!keep.getAttribute("normal")) keep.computeVertexNormals();
   return keep;
@@ -196,15 +234,18 @@ function uvTriplanar(geo, escala) {
 
 // ---------- Estilo completo ----------
 /**
- * opciones: { estilo, ventanas ("gris"|"luz"|"negro"), base (bool), giro (0..3, cuartos de vuelta en X) }
+ * opciones: { estilo ("madera"|"carton-blanco"|"carton-gris"|"original"), ventanas ("gris"|"luz"|"negro"|"original"), base (bool), giro (0..3, cuartos de vuelta en X) }
  * Devuelve { escena, triangulos }
  */
 export function aplicarEstilo(root, opciones) {
+  const original = opciones.estilo === "original";
   const est = ESTILOS[opciones.estilo] || ESTILOS.madera;
   const giro = new THREE.Matrix4().makeRotationX((-Math.PI / 2) * (opciones.giro || 0));
   root.updateMatrixWorld(true);
+  const modoV = ["gris", "luz", "negro", "original"].includes(opciones.ventanas) ? opciones.ventanas : "gris";
 
-  const cuerpo = [], vidrios = [];
+  // piezas: { geo, mat (material original), vidrio }
+  const piezas = [];
   root.traverse((o) => {
     if (!o.isMesh || !o.geometry?.getAttribute("position")) return;
     if (o.isLine || o.isPoints) return;
@@ -212,26 +253,26 @@ export function aplicarEstilo(root, opciones) {
     const m = new THREE.Matrix4().multiplyMatrices(giro, o.matrixWorld);
     const geo = o.geometry;
     if (mats.length > 1 && geo.groups.length) {
-      // separar por grupos de material
       const ng = geo.index ? geo.toNonIndexed() : geo;
       for (const gr of ng.groups) {
         const sub = new THREE.BufferGeometry();
-        for (const name of ["position", "normal"]) {
+        for (const name of ["position", "normal", "uv"]) {
           const a = ng.getAttribute(name);
           if (!a) continue;
           sub.setAttribute(name, new THREE.BufferAttribute(a.array.slice(gr.start * a.itemSize, (gr.start + gr.count) * a.itemSize), a.itemSize));
         }
-        (esVidrio(mats[gr.materialIndex]) ? vidrios : cuerpo).push(prepararGeo(sub, m));
+        const mat = mats[gr.materialIndex];
+        piezas.push({ geo: prepararGeo(sub, m), mat, vidrio: esVidrio(mat) });
       }
     } else {
-      (esVidrio(mats[0]) ? vidrios : cuerpo).push(prepararGeo(geo, m));
+      piezas.push({ geo: prepararGeo(geo, m), mat: mats[0], vidrio: esVidrio(mats[0]) });
     }
   });
-  if (!cuerpo.length && !vidrios.length) throw new Error("No se encontró ninguna superficie en el archivo.");
+  if (!piezas.length) throw new Error("No se encontró ninguna superficie en el archivo.");
 
   // tamaño: el lado mayor en planta pasa a medir 50 cm (escala de maqueta)
   const box = new THREE.Box3();
-  for (const g of [...cuerpo, ...vidrios]) { g.computeBoundingBox(); box.union(g.boundingBox); }
+  for (const p of piezas) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); }
   const size = box.getSize(new THREE.Vector3());
   const lado = Math.max(size.x, size.z) || 1;
   const s = 0.5 / lado;
@@ -240,19 +281,16 @@ export function aplicarEstilo(root, opciones) {
   const base = opciones.base !== false;
   const altoBase = base ? 0.03 : 0;
   norm.premultiply(new THREE.Matrix4().makeTranslation(0, altoBase, 0));
-  for (const g of [...cuerpo, ...vidrios]) g.applyMatrix4(norm);
-
-  const tex = new THREE.CanvasTexture(est.textura());
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tex.userData.mimeType = "image/jpeg";
+  for (const p of piezas) p.geo.applyMatrix4(norm);
 
   const escena = new THREE.Scene();
   let triangulos = 0;
-  const agregar = (geos, mat, nombre) => {
+  const agregar = (geos, mat, nombre, triplanar) => {
     if (!geos.length) return;
-    geos.forEach((g) => uvTriplanar(g, est.escala));
+    for (const g of geos) {
+      if (triplanar) uvTriplanar(g, triplanar);
+      else if (!g.getAttribute("uv")) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.getAttribute("position").count * 2), 2));
+    }
     let g = mergeGeometries(geos, false);
     g = mergeVertices(g, 1e-6);
     triangulos += (g.index ? g.index.count : g.getAttribute("position").count) / 3;
@@ -261,27 +299,69 @@ export function aplicarEstilo(root, opciones) {
     escena.add(mesh);
   };
 
-  const matCuerpo = new THREE.MeshStandardMaterial({
-    name: "maqueta", map: tex, color: est.color, roughness: est.rugosidad, metalness: 0, side: THREE.DoubleSide,
-  });
-  // ventanas: "gris" (acetato ahumado), "luz" (iluminadas) o "negro"
-  const modoV = ["gris", "luz", "negro"].includes(opciones.ventanas) ? opciones.ventanas : "gris";
   const VIDRIOS = {
     gris: { color: 0x7a838c, roughness: 0.12, metalness: 0.25 },
     luz: { color: 0x6b5236, emissive: 0xffa64a, emissiveIntensity: 2.2, roughness: 0.25, metalness: 0 },
     negro: { color: 0x0e0e0f, roughness: 0.4, metalness: 0 },
   };
-  const matVidrio = new THREE.MeshStandardMaterial({ name: "vidrio", side: THREE.DoubleSide, ...VIDRIOS[modoV] });
-  agregar(cuerpo, matCuerpo, "maqueta");
-  agregar(vidrios, matVidrio, "ventanas");
+  const vidrioPropio = modoV === "original";
+  const matVidrio = vidrioPropio ? null : new THREE.MeshStandardMaterial({ name: "vidrio", side: THREE.DoubleSide, ...VIDRIOS[modoV] });
+  const vidrios = vidrioPropio ? [] : piezas.filter((p) => p.vidrio);
+  const resto = vidrioPropio ? piezas : piezas.filter((p) => !p.vidrio);
+
+  let matBase;
+  if (original) {
+    // conservar materiales y texturas de SketchUp
+    const grupos = new Map();
+    for (const p of resto) {
+      const k = p.mat?.uuid || "sin";
+      if (!grupos.has(k)) grupos.set(k, { mat: p.mat, geos: [] });
+      grupos.get(k).geos.push(p.geo);
+    }
+    let i = 0;
+    for (const { mat, geos } of grupos.values()) {
+      const mapa = mat?.map && mat.map.image && (mat.map.image.width || 0) > 1 ? mat.map : null;
+      if (mapa) {
+        mapa.wrapS = mapa.wrapT = THREE.RepeatWrapping;
+        mapa.colorSpace = THREE.SRGBColorSpace;
+        const nombre = NOMBRE_BLOB.get(mapa.image.src || mapa.image.currentSrc) || "";
+        // PNG solo si el original lo era (puede tener transparencia); el resto, JPG liviano
+        mapa.userData.mimeType = /\.png$/.test(nombre) || (!nombre && (mat.transparent || mat.alphaTest > 0)) ? "image/png" : "image/jpeg";
+      }
+      const opacidad = mat?.opacity ?? 1;
+      const nuevo = new THREE.MeshStandardMaterial({
+        name: mat?.name || "material" + ++i,
+        color: mat?.color ? mat.color.clone() : new THREE.Color(0xdddddd),
+        map: mapa,
+        transparent: opacidad < 0.99,
+        opacity: opacidad,
+        roughness: opacidad < 0.99 ? 0.1 : 0.85,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      });
+      agregar(geos, nuevo, nuevo.name, 0);
+    }
+    matBase = new THREE.MeshStandardMaterial({ name: "base", color: 0xe9e5dd, roughness: 0.9, metalness: 0 });
+  } else {
+    const tex = new THREE.CanvasTexture(est.textura());
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    tex.userData.mimeType = "image/jpeg";
+    const matCuerpo = new THREE.MeshStandardMaterial({
+      name: "maqueta", map: tex, color: est.color, roughness: est.rugosidad, metalness: 0, side: THREE.DoubleSide,
+    });
+    agregar(resto.map((p) => p.geo), matCuerpo, "maqueta", est.escala);
+    matBase = new THREE.MeshStandardMaterial({ name: "base", map: tex, color: est.base, roughness: est.rugosidad, metalness: 0 });
+  }
+  agregar(vidrios.map((p) => p.geo), matVidrio, "ventanas", 1);
 
   if (base) {
     const margen = 0.06;
     const w = size.x * s + margen * 2, d = size.z * s + margen * 2;
-    let bg = new THREE.BoxGeometry(w, altoBase, d).toNonIndexed();
+    const bg = new THREE.BoxGeometry(w, altoBase, d).toNonIndexed();
     bg.translate(0, altoBase / 2, 0);
-    const matBase = new THREE.MeshStandardMaterial({ name: "base", map: tex, color: est.base, roughness: est.rugosidad, metalness: 0 });
-    uvTriplanar(bg, est.escala);
+    uvTriplanar(bg, original ? 1 : est.escala);
     const mb = new THREE.Mesh(bg, matBase);
     mb.name = "base";
     escena.add(mb);
@@ -290,7 +370,35 @@ export function aplicarEstilo(root, opciones) {
   return { escena, triangulos: Math.round(triangulos) };
 }
 
+let encoder = null;
+async function dracoEncoder() {
+  if (!encoder) {
+    const wasmBinary = await (await fetch("/js/draco/draco_encoder.wasm")).arrayBuffer();
+    encoder = await DracoEncoderModule({ wasmBinary });
+  }
+  return encoder;
+}
+
+// Comprime la geometría con Draco (suele reducir el peso 5 a 10 veces)
+async function comprimir(glb) {
+  const io = new WebIO()
+    .registerExtensions([KHRDracoMeshCompression])
+    .registerDependencies({ "draco3d.encoder": await dracoEncoder() });
+  const doc = await io.readBinary(new Uint8Array(glb));
+  await doc.transform(
+    weld(),
+    draco({ method: "edgebreaker", quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 11, quantizationVolume: "scene" })
+  );
+  const out = await io.writeBinary(doc);
+  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
+}
+
 export async function exportarGLB(escena) {
-  const out = await new GLTFExporter().parseAsync(escena, { binary: true, maxTextureSize: 1024 });
-  return out; // ArrayBuffer
+  const glb = await new GLTFExporter().parseAsync(escena, { binary: true, maxTextureSize: 1024 });
+  try {
+    return await comprimir(glb);
+  } catch (e) {
+    console.warn("No se pudo comprimir, se usa sin comprimir", e);
+    return glb;
+  }
 }

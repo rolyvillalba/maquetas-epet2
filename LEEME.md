@@ -1,7 +1,7 @@
 # Maquetas AR · EPET N° 2
 
 Web para la muestra anual. El alumno sube la maqueta exportada de SketchUp, elige el estilo
-(madera balsa, cartón blanco o cartón gris) y la página le devuelve:
+(madera balsa, cartón blanco, cartón gris u original de SketchUp, con sus colores y texturas) y la página le devuelve:
 
 - la maqueta lista para ver en **realidad aumentada** desde el celular (Android y iPhone, sin instalar nada),
 - el **QR** y una **ficha para imprimir** (A6) para poner al lado del plano,
@@ -51,6 +51,7 @@ Listo. Pasales a los chicos la dirección de la web.
 
 1. En SketchUp, ocultá o borrá lo que no va en la maqueta (muebles pesados, autos, plantas y personas en 3D).
 2. **Archivo › Exportar › Modelo 3D › COLLADA (.dae)**. (SketchUp para web: **Descargar › STL**).
+   Para el estilo **Original de SketchUp** conviene **Google Earth (.kmz)** o **glTF (.glb)**, que llevan las texturas adentro. Con .dae hay que arrastrar también la carpeta de texturas que SketchUp crea al lado.
 3. Entrá a la web, completá los datos, arrastrá el archivo y elegí el estilo.
 4. Si la maqueta aparece acostada, tocá **Enderezar**.
 5. **Publicar maqueta** → descargá la ficha y **anotá el código de edición**.
@@ -64,7 +65,7 @@ Los materiales transparentes (vidrios) se detectan solos. Ventanas: acetato gris
 - Para AR hace falta Android con ARCore (la mayoría de los actuales) o iPhone. En los que no tienen,
   igual se ve la maqueta en 3D y se puede girar.
 - La maqueta aparece a escala de mesa (unos 50 cm). Con dos dedos se agranda o achica.
-- Ideal: maquetas de **menos de 5 MB** (la página muestra el peso). Las más pesadas tardan más.
+- La página comprime la maqueta automáticamente (Draco). Ideal: que quede en **menos de 5 MB** (la página muestra el peso final).
 
 ## Notas técnicas
 
@@ -72,4 +73,5 @@ Los materiales transparentes (vidrios) se detectan solos. Ventanas: acetato gris
 - `public/js/estilo.js` se genera desde `fuente/estilo.js` con:
   `npx esbuild fuente/estilo.js --bundle --format=esm --minify --outfile=public/js/estilo.js`
   (necesita `npm i three jszip esbuild`). Solo hace falta si se modifica el estilo.
-- Visor: `<model-viewer>` de Google (incluido en `public/js`, no depende de internet externo).
+- Visor: `<model-viewer>` de Google y decodificador Draco, incluidos en `public/js` (no dependen de internet externo).
+- Para regenerar `estilo.js` hacen falta además `@gltf-transform/core @gltf-transform/functions @gltf-transform/extensions draco3d`, con `--platform=browser --external:node:fs --external:node:path --external:fs --external:path`.
