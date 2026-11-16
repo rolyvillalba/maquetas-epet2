@@ -14,6 +14,7 @@ Páginas:
 | `/` | Subir o actualizar una maqueta |
 | `/render.html` | Render de maquetas: arma el prompt para ChatGPT con opciones (material, aberturas, árboles, agua, fondo) y lo copia |
 | `/galeria.html` | Todas las maquetas, filtradas por curso. Con "modo profe" se descargan todas las fichas y se puede borrar |
+| (app) | Se puede **instalar** en el celular o la compu: botón «Instalar app» en el menú (Android/PC) o Compartir › «Agregar a inicio» (iPhone) |
 | `/m/CODIGO` | Lo que abre el QR: visor 3D + botón "Ver sobre la mesa" |
 
 ---
@@ -75,3 +76,5 @@ Los materiales transparentes (vidrios) se detectan solos. Ventanas: acetato gris
   (necesita `npm i three jszip esbuild`). Solo hace falta si se modifica el estilo.
 - Visor: `<model-viewer>` de Google y decodificador Draco, incluidos en `public/js` (no dependen de internet externo).
 - Para regenerar `estilo.js` hacen falta además `@gltf-transform/core @gltf-transform/functions @gltf-transform/extensions draco3d`, con `--platform=browser --external:node:fs --external:node:path --external:fs --external:path`.
+
+- App instalable (PWA): `public/manifest.webmanifest`, `public/sw.js`, `public/js/pwa.js` e íconos en `public/icons`. Si se reemplaza el visor o Draco, cambiar `VERSION` en `sw.js`.

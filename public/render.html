@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <link rel="icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0f0d0b">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maquetas AR">
+<script src="/js/pwa.js" defer></script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Render de maquetas · Maquetas AR · EPET N° 2</title>
 <link rel="stylesheet" href="/estilos.css">
@@ -17,6 +24,8 @@
   .choice:has(input:checked) { border-color: var(--acento); background: #f3b86614; font-weight: 650; }
   .sub { margin-top: 14px; padding: 15px; border-radius: 12px; background: #120f0c; border: 1px solid #ffffff0a; }
   .sub label.head { display: block; font-size: 14px; font-weight: 700; margin: 0 0 9px; color: var(--suave); }
+  input.texto { display: block; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--linea); background: #0f0d0b; color: var(--texto); font-size: 15px; }
+  input.texto:focus { outline: 2px solid var(--acento2); border-color: transparent; }
   .callout { background: #f3b8660d; border-left: 3px solid var(--acento); padding: 12px 14px; border-radius: 8px; margin-top: 18px; font-size: 14px; color: var(--suave); line-height: 1.5; }
   .callout strong { color: var(--texto); }
   .acciones { align-items: center; }
@@ -44,21 +53,29 @@
   <h1>Render de maquetas</h1>
   <p class="bajada">Elegí las opciones, copiá el prompt y pegalo en ChatGPT junto con una captura de tu proyecto de SketchUp.</p>
   <div class="pasos">
-    <div><b>1 · ELEGÍ</b>Material, aberturas, árboles, agua y fondo.</div>
+    <div><b>1 · ELEGÍ</b>Estilo, material, aberturas, árboles, agua y fondo.</div>
     <div><b>2 · COPIÁ</b>Tocá «Copiar prompt».</div>
     <div><b>3 · PEGÁ</b>En ChatGPT, adjuntá la captura de SketchUp y pegá el prompt.</div>
   </div>
   <section class="panel" aria-label="Opciones para el render">
-<fieldset class="group"><legend>1. Material principal</legend><div class="choices">
+<fieldset class="group"><legend>1. Estilo de la imagen</legend><div class="choices">
+<label class="choice"><input type="radio" name="estiloimg" value="Fotorrealista" checked> Fotorrealista</label>
+<label class="choice"><input type="radio" name="estiloimg" value="Acuarela"> Acuarela</label>
+<label class="choice"><input type="radio" name="estiloimg" value="Croquis a mano"> Croquis a mano (lápiz y tinta)</label>
+<label class="choice"><input type="radio" name="estiloimg" value="Ilustración digital"> Ilustración digital (colores planos)</label>
+<label class="choice"><input type="radio" name="estiloimg" value="Otro"> Otro</label>
+</div><div class="sub" id="estiloOtro" hidden><label class="head" for="estiloTexto">Describí el estilo que querés</label><input class="texto" id="estiloTexto" maxlength="160" placeholder="ej: lápices de colores, collage, render nocturno, estilo cómic…"></div></fieldset>
+<fieldset class="group"><legend>2. Material principal</legend><div class="choices">
 <label class="choice"><input type="radio" name="material" value="Madera balsa"> Madera balsa</label>
 <label class="choice"><input type="radio" name="material" value="Cartón blanco"> Cartón blanco</label>
 <label class="choice"><input type="radio" name="material" value="Cartón gris" checked> Cartón gris</label>
-</div></fieldset>
-<fieldset class="group"><legend>2. Aberturas</legend><div class="choices">
+<label class="choice"><input type="radio" name="material" value="Otros"> Otros</label>
+</div><div class="sub" id="materialOtro" hidden><label class="head" for="materialTexto">¿Qué material?</label><input class="texto" id="materialTexto" maxlength="120" placeholder="ej: hormigón visto, ladrillo, telgopor, MDF, acrílico blanco…"></div></fieldset>
+<fieldset class="group"><legend>3. Aberturas</legend><div class="choices">
 <label class="choice"><input type="radio" name="aberturas" value="Iluminadas (luz ámbar)"> Iluminadas (luz ámbar)</label>
 <label class="choice"><input type="radio" name="aberturas" value="Acetato gris traslúcido" checked> Acetato gris traslúcido</label>
 </div></fieldset>
-<fieldset class="group"><legend>3. Árboles decorativos</legend><div class="choices">
+<fieldset class="group"><legend>4. Árboles decorativos</legend><div class="choices">
 <label class="choice"><input type="radio" name="arboles" value="Agregar árboles" checked> Agregar árboles</label>
 <label class="choice"><input type="radio" name="arboles" value="No agregar árboles"> No agregar árboles</label>
 </div><div class="sub" id="arbolSettings">
@@ -69,12 +86,12 @@
 <label class="choice"><input type="radio" name="tipo" value="Con copa"> Con copa y follaje</label>
 <label class="choice"><input type="radio" name="tipo" value="Solo ramas" checked> Solo tronco y ramas, sin hojas</label>
 </div></div></fieldset>
-<fieldset class="group"><legend>4. Piscinas y espejos de agua</legend><div class="choices">
+<fieldset class="group"><legend>5. Piscinas y espejos de agua</legend><div class="choices">
 <label class="choice"><input type="radio" name="agua" value="Material de la maqueta"> Material de la maqueta</label>
 <label class="choice"><input type="radio" name="agua" value="Acetato gris traslúcido"> Acetato gris traslúcido</label>
 <label class="choice"><input type="radio" name="agua" value="Agua realista" checked> Agua realista</label>
 </div></fieldset>
-<fieldset class="group"><legend>5. Fondo y base</legend><div class="choices">
+<fieldset class="group"><legend>6. Fondo y base</legend><div class="choices">
 <label class="choice"><input type="radio" name="fondo" value="Todo blanco"> Todo blanco</label>
 <label class="choice"><input type="radio" name="fondo" value="Todo negro" checked> Todo negro</label>
 <label class="choice"><input type="radio" name="fondo" value="Todo gris oscuro"> Todo gris oscuro</label>
@@ -110,15 +127,30 @@
 </main>
 <script>
 const get=(n)=>document.querySelector(`input[name="${n}"]:checked`).value;
+const ESTILOS_IMG={
+ 'Fotorrealista':'una fotografía hiperrealista de una maqueta arquitectónica física de exposición profesional',
+ 'Acuarela':'una ilustración en acuarela de una maqueta arquitectónica física, con pinceladas suaves, transparencias y textura de papel',
+ 'Croquis a mano':'un croquis arquitectónico a mano alzada, en lápiz y tinta, de una maqueta arquitectónica física',
+ 'Ilustración digital':'una ilustración digital de estilo gráfico, con colores planos y líneas limpias, de una maqueta arquitectónica física'
+};
+const txt=(id)=>document.getElementById(id).value.trim().replace(/\s+/g,' ');
 function build(){
- const mat=get('material'),abe=get('aberturas'),arb=get('arboles'),color=get('color'),tipo=get('tipo'),agu=get('agua'),fon=get('fondo');
+ const est=get('estiloimg'),estTxt=txt('estiloTexto'),matSel=get('material'),matTxt=txt('materialTexto');
+ document.getElementById('estiloOtro').hidden=est!=='Otro';
+ document.getElementById('materialOtro').hidden=matSel!=='Otros';
+ const mat=matSel==='Otros'?(matTxt||'un material a elección, propio de maquetas'):matSel;
+ const estNombre=est==='Otro'?(estTxt||'a elección'):est;
+ const estFrase=est==='Otro'?(estTxt?`una imagen de una maqueta arquitectónica física representada con este estilo: ${estTxt}`:'una imagen artística de una maqueta arquitectónica física'):ESTILOS_IMG[est];
+ const foto=est==='Fotorrealista';
+ const abe=get('aberturas'),arb=get('arboles'),color=get('color'),tipo=get('tipo'),agu=get('agua'),fon=get('fondo');
  document.getElementById('arbolSettings').hidden=arb!=='Agregar árboles';
  let arbolTexto=arb==='Agregar árboles'?`Incorporar pocos árboles miniatura en los espacios disponibles, sin tapar fachadas ni alterar la arquitectura. Acabado: ${color==='Color natural'?'troncos y follaje con colores naturales, propios de una maqueta física':'árboles monocromáticos realizados con el mismo material '+mat.toLowerCase()+' de la maqueta'}. Aspecto: ${tipo==='Con copa'?'con copa y follaje':'sin hojas, solo tronco y ramas'}. Escala visual coherente con la casa.`:'No agregar árboles nuevos; conservar los ya presentes en la captura.';
  let aberturaTexto=abe.startsWith('Iluminadas')?'Mostrar luz interior ámbar cálida y, solo cuando corresponda, algunas luminarias exteriores discretas en muros o pequeños faroles.':'Representar las aberturas con acetato gris traslúcido, sin iluminación interior protagonista.';
- return `Transformá la captura de SketchUp adjunta en una fotografía hiperrealista de una maqueta arquitectónica física de exposición profesional.\n\nCONFIGURACIÓN:\nMaterial principal: ${mat}.\nAberturas: ${abe}.\nÁrboles: ${arb}.${arb==='Agregar árboles'?`\nColor de árboles: ${color}.\nTipo de árboles: ${tipo}.`:''}\nPiscinas y espejos de agua existentes: ${agu}.\nFondo y base: ${fon}.\n\nREGLAS OBLIGATORIAS:\n1. Conservar el mismo ángulo de cámara, encuadre, perspectiva, geometría, volumetría, cubiertas, aberturas y demás componentes arquitectónicos. No rediseñar, agregar, quitar ni desplazar elementos constructivos.\n2. Representar los elementos constructivos con ${mat.toLowerCase()}, respetando la geometría original.\n3. ${aberturaTexto}\n4. No agregar personas, vehículos ni mobiliario. Si ya aparecen en la captura, conservar sus cantidades, ubicaciones y proporciones. Tomar los dinteles de las aberturas a 2,05 m sobre el nivel de piso terminado como referencia de escala.\n5. ${arbolTexto}\n6. Aplicar ${agu.toLowerCase()} únicamente donde ya existan piscinas o espejos de agua; no inventar elementos de agua.\n7. Fondo y base ${fon.toLowerCase()}, uniformes. Iluminación profesional de estudio, sombras suaves y texturas realistas de maqueta física.\n8. No agregar jardines, caminos, personas, vehículos ni elementos paisajísticos distintos de los árboles permitidos. Sin textos, logotipos ni marcas de agua.\n\nGenerar directamente la imagen final, priorizando la fidelidad arquitectónica, la escala y el encuadre originales sobre cualquier mejora estética.`;
+ return `Transformá la captura de SketchUp adjunta en ${estFrase}.\n\nCONFIGURACIÓN:\nEstilo de la imagen: ${estNombre}.\nMaterial principal: ${mat}.\nAberturas: ${abe}.\nÁrboles: ${arb}.${arb==='Agregar árboles'?`\nColor de árboles: ${color}.\nTipo de árboles: ${tipo}.`:''}\nPiscinas y espejos de agua existentes: ${agu}.\nFondo y base: ${fon}.\n\nREGLAS OBLIGATORIAS:\n1. Conservar el mismo ángulo de cámara, encuadre, perspectiva, geometría, volumetría, cubiertas, aberturas y demás componentes arquitectónicos. No rediseñar, agregar, quitar ni desplazar elementos constructivos.\n2. Representar los elementos constructivos con ${mat.toLowerCase()}, respetando la geometría original.\n3. ${aberturaTexto}\n4. No agregar personas, vehículos ni mobiliario. Si ya aparecen en la captura, conservar sus cantidades, ubicaciones y proporciones. Tomar los dinteles de las aberturas a 2,05 m sobre el nivel de piso terminado como referencia de escala.\n5. ${arbolTexto}\n6. Aplicar ${agu.toLowerCase()} únicamente donde ya existan piscinas o espejos de agua; no inventar elementos de agua.\n7. Fondo y base ${fon.toLowerCase()}, uniformes. ${foto?'Iluminación profesional de estudio, sombras suaves y texturas realistas de maqueta física.':'Sombras suaves y una representación coherente con el estilo elegido, manteniendo legibles los materiales y volúmenes de la maqueta.'}\n8. No agregar jardines, caminos, personas, vehículos ni elementos paisajísticos distintos de los árboles permitidos. Sin textos, logotipos ni marcas de agua.\n\nGenerar directamente la imagen final, priorizando la fidelidad arquitectónica, la escala y el encuadre originales sobre cualquier mejora estética.`;
 }
 function refresh(){document.getElementById('prompt').value=build();document.getElementById('status').textContent=''}
 document.querySelectorAll('input').forEach(el=>el.addEventListener('change',refresh));
+document.querySelectorAll('input.texto').forEach(el=>el.addEventListener('input',refresh));
 document.getElementById('copy').addEventListener('click',async()=>{
  let value=build();const box=document.getElementById('prompt'),status=document.getElementById('status');
  try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{box.select();if(!document.execCommand('copy'))throw new Error('No copy support')}status.textContent='✓ Prompt copiado'}

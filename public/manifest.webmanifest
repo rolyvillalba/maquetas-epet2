@@ -1,0 +1,21 @@
+{
+  "name": "Maquetas AR · EPET N° 2",
+  "short_name": "Maquetas AR",
+  "description": "Subí tu maqueta de SketchUp, verla en realidad aumentada y armá el prompt para el render.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f0d0b",
+  "theme_color": "#0f0d0b",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Subir maqueta", "url": "/" },
+    { "name": "Render de maquetas", "url": "/render.html" },
+    { "name": "Galería", "url": "/galeria.html" }
+  ]
+}

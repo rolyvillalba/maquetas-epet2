@@ -110,3 +110,4 @@ button.chico { padding: 8px 12px; font-size: 13px; border-radius: 9px; }
 .estilos.cuatro { grid-template-columns: repeat(2, 1fr); }
 .m-original { background: conic-gradient(from 200deg, #c9765a, #e7d6b8, #7f9a6b, #6d87a6, #d9c27f, #c9765a); }
 #ventanas { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); }
+nav.menu a.instalar { background: linear-gradient(180deg, var(--acento), var(--acento2)); color: #1d1208; font-weight: 700; }
